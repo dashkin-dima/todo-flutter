@@ -1,77 +1,91 @@
 import 'package:flutter/material.dart';
-import 'package:todo/pages/Home.dart';
+import 'package:hive/hive.dart';
+import 'package:todo/models/task.dart';
 
-class AddTaskPage extends StatefulWidget {
-  Function add;
-  AddTaskPage(this.add);
+class AddTask extends StatefulWidget {
 
   @override
-  _AddTaskPageState createState() => _AddTaskPageState(add);
+  _AddTaskState createState() => _AddTaskState();
 }
 
-class _AddTaskPageState extends State<AddTaskPage> {
-  Function add;
-  _AddTaskPageState(this.add);
+class _AddTaskState extends State<AddTask> {
+  String title;
+  String text;
 
-  String title = '';
-  String text = '';
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('task'),
+        title: Text('add task'),
         actions: [
           IconButton(
-              icon: Icon(Icons.add),
-              onPressed: () {
-                if (title != '' && text != '') {
-                  add(title, text);
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => HomePage()));
-                } else {
-                  showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                            title: Text('error'),
-                            content: Text('text and title should not be empty'),
-                          ));
-                }
-              })
+            icon: Icon(Icons.add),
+            onPressed: _add,
+          )
         ],
       ),
-      body: Padding(
-          padding: EdgeInsets.all(5.0),
-          child: Column(children: [
-            Flexible(
-              child: Padding(
-                padding: EdgeInsets.all(8.0),
-                child: TextField(
-                  onChanged: (String value) => setState(() {
-                    title = value;
-                  }),
-                  keyboardType: TextInputType.multiline,
-                  maxLines: null,
-                  decoration: InputDecoration.collapsed(
-                      hintText: "Enter your title here"),
-                ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  TextFormField(
+                    autofocus: true,
+                    initialValue: title,
+                    decoration: const InputDecoration(
+                      labelText: 'Task',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        title = value;
+                      });
+                    },
+                    validator: (value) {
+                      return value.trim().isEmpty
+                          ? 'title should not be empty'
+                          : null;
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: text,
+                    decoration: const InputDecoration(
+                      labelText: 'Note',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        text = value == null ? '' : value;
+                      });
+                    },
+                    validator: (value) {
+                      return value.trim().isEmpty
+                          ? 'text should not be empty'
+                          : null;
+                    }
+                  ),
+                ],
               ),
             ),
-            Flexible(
-              child: Padding(
-                padding: EdgeInsets.all(8.0),
-                child: TextField(
-                  onChanged: (String value) => setState(() {
-                    text = value;
-                  }),
-                  keyboardType: TextInputType.multiline,
-                  maxLines: null,
-                  decoration: InputDecoration.collapsed(
-                      hintText: "Enter your text here"),
-                ),
-              ),
-            ),
-          ])),
+          ),
+        ),
+      ),
     );
   }
+
+  void _add() {
+    final form = _formKey.currentState;
+    if (form.validate()) {
+      Box<Task> contactsBox = Hive.box<Task>('TODO');
+      contactsBox.add(Task(title: title, text: text));
+      Navigator.of(context).pop();
+    } else {
+      print('form is invalid');
+    }
+  }
+
 }
